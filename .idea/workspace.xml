@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="e8c2f8c1-9daf-415b-9eb6-2f1fc5bf92a7" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/Main.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../SpeechRecognition/SpeechRecognition.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../AI/Ai.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../AIP1/project1.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../aihw1/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../aihw1/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../aihw1/classification_regression.py" beforeDir="false" afterPath="$PROJECT_DIR$/../aihw1/classification_regression.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="ProjectId" id="1eEPlnSli6IraQHHCbtaqgEEmuO" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="e8c2f8c1-9daf-415b-9eb6-2f1fc5bf92a7" name="Default Changelist" comment="" />
+      <created>1593883932456</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1593883932456</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="223" y="67" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1593884098724">
+      <screen x="0" y="0" width="1536" height="824" />
+    </state>
+    <state x="223" y="67" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1536.824@0.0.1536.824" timestamp="1593884098724" />
+    <state x="277" y="57" key="SettingsEditor" timestamp="1593884087052">
+      <screen x="0" y="0" width="1536" height="824" />
+    </state>
+    <state x="277" y="57" key="SettingsEditor/0.0.1536.824@0.0.1536.824" timestamp="1593884087052" />
+  </component>
+</project>
