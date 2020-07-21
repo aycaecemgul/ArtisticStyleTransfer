@@ -40,7 +40,7 @@ def display_images(content, style):
 # load and reshape the two images in arrays of numbers
 
 def load_image(image_path):
-    dim = 256
+    dim = 400
     img = tf.io.read_file(image_path)
     img = tf.image.decode_image(img, channels=3)
     img = tf.image.convert_image_dtype(img, tf.float32)
@@ -207,8 +207,8 @@ def train_step(image):
 
 image = tf.Variable(content)
 
-epochs = 10
-steps_per_epoch = 100
+epochs = 5
+steps_per_epoch = 200
 
 step = 0
 for n in range(epochs):
