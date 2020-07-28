@@ -1,3 +1,7 @@
+from os import path
+from os.path import isfile, join
+import cv2
+import os
 import cv2
 import tensorflow as tf
 import keras
@@ -40,7 +44,7 @@ def display_images(content, style):
 # load and reshape the two images in arrays of numbers
 
 def load_image(image_path):
-    dim = 400
+    dim = 450
     img = tf.io.read_file(image_path)
     img = tf.image.decode_image(img, channels=3)
     img = tf.image.convert_image_dtype(img, tf.float32)
@@ -53,29 +57,45 @@ def load_image(image_path):
 content = load_image(content_path)
 style = load_image(style_path)
 
-# loading a pre-trained VGG19 model for extracting the features.
-
-x = tf.keras.applications.vgg19.preprocess_input(content * 255)
-x = tf.image.resize(x, (224, 224))
-vgg = tf.keras.applications.VGG19(include_top=True, weights='imagenet')
-prediction_probabilities = vgg(x)
 
 # Content layer
 # or block4_conv2
 content_layers = ['block4_conv2']
+
+"""input_1
+block1_conv1
+block1_conv2
+block1_pool
+block2_conv1
+block2_conv2
+block2_pool
+block3_conv1
+block3_conv2
+block3_conv3
+block3_conv4
+block3_pool
+block4_conv1
+block4_conv2
+block4_conv3
+block4_conv4
+block4_pool
+block5_conv1
+block5_conv2
+block5_conv3
+block5_conv4
+block5_pool"""
 
 # Style layer
 style_layers = ['block1_conv1',
                 'block2_conv1',
                 'block3_conv1',
                 'block4_conv1',
-                'block5_conv1']
+                'block5_conv1'
+                ]
 
 num_content_layers = len(content_layers)
 num_style_layers = len(style_layers)
 
-
-# build the custom VGG model which will be composed of the specified layers.
 
 def vgg_layers(layer_names):
     vgg = tf.keras.applications.VGG19(include_top=False, weights='imagenet')
@@ -86,29 +106,27 @@ def vgg_layers(layer_names):
     model = tf.keras.Model([vgg.input], outputs)
     return model
 
-
+#our model
 style_extractor = vgg_layers(style_layers)
 style_outputs = style_extractor(style * 255)
 
-# Look at the statistics of each layer's output
-# for name, output in zip(style_layers, style_outputs):
-#     print(name)
-#     print("  shape: ", output.numpy().shape)
-#     print("  min: ", output.numpy().min())
-#     print("  max: ", output.numpy().max())
-#     print("  mean: ", output.numpy().mean())
+# # Look at the statistics of each layer's output
+# # for name, output in zip(style_layers, style_outputs):
+# #     print(name)
+# #     print("  shape: ", output.numpy().shape)
+# #     print("  min: ", output.numpy().min())
+# #     print("  max: ", output.numpy().max())
+# #     print("  mean: ", output.numpy().mean())
 #     print()
 
 
 # #Defining a gram matrix
 
-def gram_matrix(tensor):
-    temp = tensor
-    temp = tf.squeeze(temp)
-    fun = tf.reshape(temp, [temp.shape[2], temp.shape[0] * temp.shape[1]])
-    result = tf.matmul(temp, temp, transpose_b=True)
-    gram = tf.expand_dims(result, axis=0)
-    return gram
+def gram_matrix(input_tensor):
+    result = tf.linalg.einsum('bijc,bijd->bcd', input_tensor, input_tensor)
+    input_shape = tf.shape(input_tensor)
+    num_locations = tf.cast(input_shape[1] * input_shape[2], tf.float32)
+    return result / (num_locations)
 
 
 class StyleContentModel(tf.keras.models.Model):
@@ -152,9 +170,6 @@ results = extractor(tf.constant(content))
 style_targets = extractor(style)['style']
 content_targets = extractor(content)['content']
 
-# Define a tf.Variable to contain the image to optimize.
-# To make this quick, initialize it with the content image
-# (the tf.Variable must be the same shape as the content image)
 image = tf.Variable(content)
 
 #Since this is a float image, define a function
@@ -163,18 +178,13 @@ def clip_0_1(image):
     return tf.clip_by_value(image, clip_value_min=0.0, clip_value_max=1.0)
 
 
-opt = tf.optimizers.Adam(learning_rate=0.02)
+opt = tf.optimizers.Adam(learning_rate=0.02, beta_1=0.99, epsilon=1e-1)
 
 # Custom weights for style and content updates
-style_weight = 100  # 1e-2
-content_weight = 10  # 1e4
+style_weight = 200
+content_weight = 1e4
 
-# Custom weights for different style layers
-style_weights = {'block1_conv1': 1.,
-                 'block2_conv1': 0.8,
-                 'block3_conv1': 0.5,
-                 'block4_conv1': 0.3,
-                 'block5_conv1': 0.1}
+
 
 
 # The loss function to optimize
@@ -190,16 +200,16 @@ def style_content_loss(outputs):
     content_loss *= content_weight / num_content_layers
     loss = style_loss + content_loss
     return loss
-
-
-total_variation_weight=30
-
+#
+#THIS WAS 30
+total_variation_weight=800
+#
 @tf.function()
 def train_step(image):
   with tf.GradientTape() as tape:
     outputs = extractor(image)
     loss = style_content_loss(outputs)
-    loss += total_variation_weight*tf.image.total_variation(image)
+    loss += total_variation_weight * tf.image.total_variation(image)
 
   grad = tape.gradient(loss, image)
   opt.apply_gradients([(grad, image)])
@@ -208,8 +218,7 @@ def train_step(image):
 image = tf.Variable(content)
 
 epochs = 5
-steps_per_epoch = 200
-
+steps_per_epoch = 400
 step = 0
 for n in range(epochs):
   for m in range(steps_per_epoch):
@@ -218,13 +227,47 @@ for n in range(epochs):
   plt.imshow(np.squeeze(image.read_value(), 0))
   plt.title("Train step: {}".format(step))
   plt.show()
+  # file_name = 'stylized-image' + "/%#05d.jpg" % (step +1) +"frame.png"
+  # tensor_to_image(image).save(file_name)
 
-file_name = 'stylized-image.png'
-tensor_to_image(image).save(file_name)
+# def transfer_to_frames(frame):
+#     for i in range(frame):
+#         image = tf.Variable(frame)
+#         train_step(image)
+#         # file_name = 'stylized-frame' + "/%#05d.jpg" % (i).png'
+#         tensor_to_image(image).save(file_name)
 
-# try:
-#   from google.colab import files
-# except ImportError:
-#    pass
-# else:
-#   files.download(file_name)
+def video_to_frames(input_loc, output_loc):
+    try:
+        os.mkdir(output_loc)
+    except OSError:
+        pass
+    # Start capturing the feed
+    cap = cv2.VideoCapture(input_loc)
+    # Find the number of frames
+    video_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) - 1
+    print("Number of frames: ", video_length)
+    count = 0
+    print("Converting video..\n")
+    # Start converting the video
+    while cap.isOpened():
+        # Extract the frame
+        ret, frame = cap.read()
+        # Write the results back to output location.
+        if (count % 4 == 1):
+            cv2.imwrite(output_loc + "/%#05d.jpg" % (count + 1), frame)
+        count = count + 1
+        # If there are no more frames left
+        if (count > (video_length - 1)):
+            # Release the feed
+            cap.release()
+            # Print stats
+            print("Done extracting frames.\n%d frames extracted" % count)
+            break
+
+# if __name__ == "__main__":
+#     input_loc = "video.mp4"
+#     output_loc = "C:\\Users\\aycae\\PycharmProjects\\Internship\\Frames"
+#     video_to_frames(input_loc, output_loc)
+
+
