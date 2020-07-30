@@ -14,13 +14,13 @@ from PIL import Image
 import PIL
 
 
-def tensor_to_image(tensor):
+def tensor_to_image(tensor,path):
     tensor = tensor * 255
     tensor = np.array(tensor, dtype=np.uint8)
     if np.ndim(tensor) > 3:
         assert tensor.shape[0] == 1
         tensor = tensor[0]
-    return PIL.Image.fromarray(tensor)
+    tf.keras.preprocessing.image.save_img(path,tensor)
 
 
 # displaying the content and style images
@@ -62,36 +62,14 @@ style = load_image(style_path)
 # or block4_conv2
 content_layers = ['block4_conv2']
 
-"""input_1
-block1_conv1
-block1_conv2
-block1_pool
-block2_conv1
-block2_conv2
-block2_pool
-block3_conv1
-block3_conv2
-block3_conv3
-block3_conv4
-block3_pool
-block4_conv1
-block4_conv2
-block4_conv3
-block4_conv4
-block4_pool
-block5_conv1
-block5_conv2
-block5_conv3
-block5_conv4
-block5_pool"""
+
 
 # Style layer
 style_layers = ['block1_conv1',
                 'block2_conv1',
                 'block3_conv1',
                 'block4_conv1',
-                'block5_conv1'
-                ]
+                'block5_conv1']
 
 num_content_layers = len(content_layers)
 num_style_layers = len(style_layers)
@@ -106,18 +84,19 @@ def vgg_layers(layer_names):
     model = tf.keras.Model([vgg.input], outputs)
     return model
 
-#our model
+
 style_extractor = vgg_layers(style_layers)
 style_outputs = style_extractor(style * 255)
+style_extractor.save("styleExtractor")
 
-# # Look at the statistics of each layer's output
-# # for name, output in zip(style_layers, style_outputs):
-# #     print(name)
-# #     print("  shape: ", output.numpy().shape)
-# #     print("  min: ", output.numpy().min())
-# #     print("  max: ", output.numpy().max())
-# #     print("  mean: ", output.numpy().mean())
-#     print()
+# Look at the statistics of each layer's output
+# for name, output in zip(style_layers, style_outputs):
+#      print(name)
+#      print("  shape: ", output.numpy().shape)
+#      print("  min: ", output.numpy().min())
+#      print("  max: ", output.numpy().max())
+#      print("  mean: ", output.numpy().mean())
+#      print()
 
 
 # #Defining a gram matrix
@@ -164,12 +143,13 @@ class StyleContentModel(tf.keras.models.Model):
 # content and style variables respectively
 
 extractor = StyleContentModel(style_layers, content_layers)
-results = extractor(tf.constant(content))
+#results = extractor(tf.constant(content))
+
+#extractor.save("theModel")
 
 # gradient descent
 style_targets = extractor(style)['style']
 content_targets = extractor(content)['content']
-
 image = tf.Variable(content)
 
 #Since this is a float image, define a function
@@ -183,9 +163,6 @@ opt = tf.optimizers.Adam(learning_rate=0.02, beta_1=0.99, epsilon=1e-1)
 # Custom weights for style and content updates
 style_weight = 200
 content_weight = 1e4
-
-
-
 
 # The loss function to optimize
 def style_content_loss(outputs):
@@ -203,7 +180,8 @@ def style_content_loss(outputs):
 #
 #THIS WAS 30
 total_variation_weight=800
-#
+#keras.models.load_model(filepath)
+
 @tf.function()
 def train_step(image):
   with tf.GradientTape() as tape:
@@ -217,18 +195,19 @@ def train_step(image):
 
 image = tf.Variable(content)
 
-epochs = 5
-steps_per_epoch = 400
+#def transfer_style_to_frames():
+epochs = 10
+steps_per_epoch = 200
 step = 0
 for n in range(epochs):
   for m in range(steps_per_epoch):
     step += 1
     train_step(image)
-  plt.imshow(np.squeeze(image.read_value(), 0))
-  plt.title("Train step: {}".format(step))
-  plt.show()
-  # file_name = 'stylized-image' + "/%#05d.jpg" % (step +1) +"frame.png"
-  # tensor_to_image(image).save(file_name)
+  # plt.imshow(np.squeeze(image.read_value(), 0))
+  # plt.title("Train step: {}".format(step))
+  # plt.show()
+  file_name = 'C:\\Users\\aycae\\OneDrive\\Masaüstü\\results\\stylized-image' + "%s" % (step) +".jpg"
+  tensor_to_image(image,file_name)
 
 # def transfer_to_frames(frame):
 #     for i in range(frame):
