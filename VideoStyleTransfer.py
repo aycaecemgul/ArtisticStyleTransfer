@@ -5,6 +5,7 @@ import moviepy.video.io.ImageSequenceClip
 import numpy as np
 import tensorflow as tf
 from keras_preprocessing.image import load_img
+import matplotlib.pyplot as plt
 
 style_path = "style.jpeg"
 style = load_img(style_path)
@@ -18,9 +19,7 @@ def reshape_image(image_path):
     img = img[tf.newaxis, :]
     return img
 
-# reshape and display images
 style = reshape_image(style_path)
-
 
 content_layers = ['block4_conv2']
 
@@ -46,8 +45,6 @@ style_extractor = vgg_layers(style_layers)
 style_outputs = style_extractor(style * 255)
 style_extractor.save("styleExtractor")
 
-
-# #Defining a gram matrix
 
 def gram_matrix(input_tensor):
     result = tf.linalg.einsum('bijc,bijd->bcd', input_tensor, input_tensor)
@@ -85,15 +82,13 @@ class StyleContentModel(tf.keras.models.Model):
 
         return {'content': content_dict, 'style': style_dict}
 
-# Note that the content and style images are loaded in
-# content and style variables respectively
 
 extractor = StyleContentModel(style_layers, content_layers)
 
 # gradient descent
 style_targets = extractor(style)['style']
 
-#Since this is a float image, define a function to keep the pixel values between 0 and 1:
+#define a function to keep the pixel values between 0 and 1:
 def clip_0_1(image):
     return tf.clip_by_value(image, clip_value_min=0.0, clip_value_max=1.0)
 
@@ -101,12 +96,13 @@ opt = tf.optimizers.Adam(learning_rate=0.02, beta_1=0.99, epsilon=1e-1)
 
 # Custom weights for style and content updates
 style_weight = 200
-content_weight = 1e4
+content_weight = 1e6
 
 # The loss function to optimize
 def style_content_loss(outputs):
     style_outputs = outputs['style']
     content_outputs = outputs['content']
+    content_targets = extractor(content)['content']
     style_loss = tf.add_n([tf.reduce_mean((style_outputs[name] - style_targets[name]) ** 2)
                            for name in style_outputs.keys()])
     style_loss *= style_weight / num_style_layers
@@ -121,14 +117,14 @@ total_variation_weight=800
 
 @tf.function()
 def train_step(image):
-  with tf.GradientTape() as tape:
-    outputs = extractor(image)
-    loss = style_content_loss(outputs)
-    loss += total_variation_weight * tf.image.total_variation(image)
+    with tf.GradientTape() as tape:
+        outputs = extractor(image)
+        loss = style_content_loss(outputs)
+        loss += total_variation_weight * tf.image.total_variation(image)
+    grad = tape.gradient(loss, image)
+    opt.apply_gradients([(grad, image)])
+    image.assign(clip_0_1(image))
 
-  grad = tape.gradient(loss, image)
-  opt.apply_gradients([(grad, image)])
-  image.assign(clip_0_1(image))
 
 def tensor_to_image(tensor,path):
     tensor = tensor * 255
@@ -143,94 +139,58 @@ def video_to_frames(input_loc, output_loc):
         os.mkdir(output_loc)
     except OSError:
         pass
-    # Start capturing the feed
     cap = cv2.VideoCapture(input_loc)
-    # Find the number of frames
     video_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) - 1
-    print("Number of frames: ", video_length)
     count = 0
     frame_count=0
-    # Start converting the video
     while cap.isOpened():
-        # Extract the frame
         ret, frame = cap.read()
-        # Write the results back to output location.
         if (count % 4 == 1):
-            cv2.imwrite(output_loc + "/%d.jpeg" % (frame_count), frame, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+            cv2.imwrite(output_loc + "/%2d0.jpeg" % (frame_count), frame, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
             frame_count=frame_count+1
         count=count+1
-        # If there are no more frames left
         if (count > (video_length - 1)):
-            # Release the feed
             cap.release()
-            # Print stats
-            print("Done extracting frames.\n%d frames extracted" % count)
             break
 
     return frame_count
 
-epochs = 5
-steps_per_epoch = 200
-file_path="C:\\Users\\aycae\\PycharmProjects\\Internship\\Frames\\"
-video_path="C:\\Users\\aycae\\PycharmProjects\\Internship\\video.mp4"
-frames=video_to_frames(video_path,file_path)
+file_path="Frames\\"
+video_path="video.mp4"
+#frames=video_to_frames(video_path,file_path)
 
-for k in range(frames):
+epochs = 10
+steps_per_epoch = 70
 
-    content_path = (file_path + "%d.jpeg" % (k))
-    content=load_img(content_path)
+def load_content(file_path,image_path):
+    content_path = os.path.join(file_path,image_path)
     content = reshape_image(content_path)
-    content_targets = extractor(content)['content']
-    image = tf.Variable(content)
+    return content
 
+index = 0
+
+for image_path in os.listdir(file_path):
+    content=load_content(file_path,image_path)
+    image = tf.Variable(content)
+    print(image_path)
     for n in range(epochs):
+        print("epoch: %s" % n )
         for m in range(steps_per_epoch):
             train_step(image)
-        # plt.imshow(np.squeeze(image.read_value(), 0))
-        # plt.title("Train step: {}".format(step))
-        # plt.show()
-    file_name = 'C:\\Users\\aycae\\PycharmProjects\\Internship\\results\\' + "%s" % (k) + ".jpeg"
+    # plt.imshow(np.squeeze(image.read_value(), 0))
+    # plt.show()
+    file_name = 'results\\' + "%s" % (index) + ".jpeg"
     tensor_to_image(image, file_name)
-
-
-
-def video_to_frames(input_loc, output_loc):
-    try:
-        os.mkdir(output_loc)
-    except OSError:
-        pass
-    # Start capturing the feed
-    cap = cv2.VideoCapture(input_loc)
-    # Find the number of frames
-    video_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) - 1
-    print("Number of frames: ", video_length)
-    count = 0
-    print("Converting video..\n")
-    # Start converting the video
-    while cap.isOpened():
-        # Extract the frame
-        ret, frame = cap.read()
-        # Write the results back to output location.
-        if (count % 4 == 1):
-            cv2.imwrite(output_loc + "/%#05d.jpg" % (count + 1), frame)
-        count = count + 1
-        # If there are no more frames left
-        if (count > (video_length - 1)):
-            # Release the feed
-            cap.release()
-            # Print stats
-            print("Done extracting frames.\n%d frames extracted" % count)
-            break
-    return count
+    index= index +1
 
 def frames_to_video(input_path,output_path,fps):
     image_files = [input_path+'/'+img for img in os.listdir(input_path)]
     clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(image_files, fps=fps)
     clip.write_videofile('my_video.mp4')
 
-input_path = 'C:\\Users\\aycae\\PycharmProjects\\Internship\\results'
-output_path = 'C:\\Users\\aycae\\PycharmProjects\\Internship\\new_video.mp4'
-fps = 60
+input_path = 'results'
+output_path = 'new_video.mp4'
+fps = 30
 frames_to_video(input_path,output_path,fps)
 
 
