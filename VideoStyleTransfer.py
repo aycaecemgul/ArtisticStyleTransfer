@@ -157,7 +157,7 @@ def video_to_frames(input_loc, output_loc):
 
 file_path="Frames\\"
 video_path="video.mp4"
-#frames=video_to_frames(video_path,file_path)
+frames=video_to_frames(video_path,file_path)
 
 epochs = 10
 steps_per_epoch = 70
@@ -183,14 +183,14 @@ for image_path in os.listdir(file_path):
     tensor_to_image(image, file_name)
     index= index +1
 
-def frames_to_video(input_path,output_path,fps):
+def frames_to_video(input_path,fps):
     image_files = [input_path+'/'+img for img in os.listdir(input_path)]
     clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(image_files, fps=fps)
-    clip.write_videofile('my_video.mp4')
+    clip.write_videofile('result.mp4')
 
 input_path = 'results'
-output_path = 'new_video.mp4'
-fps = 30
-frames_to_video(input_path,output_path,fps)
+
+fps = 10
+frames_to_video(input_path,fps)
 
 
